@@ -1,0 +1,33 @@
+// 主要繪圖函式
+function draw() {
+  if (!video) return; // 如果攝影機尚未啟用則不執行
+
+  image(video, 0, 0, width, height); // 顯示攝影機畫面
+
+  noFill();
+  strokeWeight(3); // 設定線條粗細
+
+  // 臉部偵測（只標記鼻頭）
+  if (predictions.length > 0) {
+    const keypoints = predictions[0].scaledMesh; // 取得臉部關鍵點座標
+
+    // 取得鼻頭座標（index 1）並畫圓
+    const noseTip = keypoints[1];
+    if (noseTip) {
+      noFill();
+      stroke(255, 255, 0); // 黃色
+      ellipse(noseTip[0], noseTip[1], 50, 50); // 以鼻頭為中心畫直徑50的圓
+    }
+  }
+
+  // 手部偵測（標記食指指尖）
+  if (handPredictions.length > 0) {
+    for (let i = 0; i < handPredictions.length; i++) {
+      const landmarks = handPredictions[i].landmarks; // 取得手部關鍵點
+      const indexFingerTip = landmarks[8]; // 食指指尖座標（index 8）
+      fill(255); // 白色
+      noStroke();
+      ellipse(indexFingerTip[0], indexFingerTip[1], 10, 10); // 畫圓標記食指指尖
+    }
+  }
+}
