@@ -1,9 +1,10 @@
 let video;
 let predictions = [];
-let handPredictions = [];
 let facemesh;
 let handpose;
+let hands = [];
 
+// 初始化 facemesh 與 handpose
 function setup() {
   createCanvas(640, 480);
 
@@ -25,51 +26,37 @@ function setup() {
     console.log("Handpose model loaded!");
   });
   handpose.on("predict", results => {
-    handPredictions = results;
+    hands = results;
   });
 }
+
 // 主要繪圖函式
 function draw() {
-  if (!video) return; // 如果攝影機尚未啟用則不執行
-
   image(video, 0, 0, width, height); // 顯示攝影機畫面
-
   noFill();
-  strokeWeight(3); // 設定線條粗細
+  strokeWeight(3);
 
-  // 預設圓圈位置為鼻頭
-  let circlePos = null;
-
-  // 臉部偵測
+  // 臉部偵測與圓圈移動
   if (predictions.length > 0) {
-    const keypoints = predictions[0].scaledMesh; // 取得臉部關鍵點座標
-
-    // 額頭（以10號點為例）、左眼（33）、右眼（263）、左臉頰（234）、右臉頰（454）
+    const keypoints = predictions[0].scaledMesh;
     const forehead = keypoints[10];
-    const leftEye = keypoints[33];
-    const rightEye = keypoints[263];
     const leftCheek = keypoints[234];
     const rightCheek = keypoints[454];
     const noseTip = keypoints[1];
-
-    // 預設為鼻頭
-    circlePos = noseTip;
+    let circlePos = noseTip;
 
     // 手勢辨識（剪刀石頭布）
-    if (handPredictions.length > 0) {
-      for (let i = 0; i < handPredictions.length; i++) {
-        const landmarks = handPredictions[i].landmarks;
-
-        // 判斷手勢
-        const gesture = detectGesture(landmarks);
-
-        // 根據手勢決定圓圈位置
-        if (gesture === "rock") {
-          circlePos = forehead; // 石頭：額頭
-        } else if (gesture === "scissors") {
-          circlePos = leftCheek ? leftCheek : noseTip; // 剪刀：左側臉頰
-        } else if (gesture === "paper") {
-          circlePos = rightCheek ? rightCheek : noseTip; // 布：右側臉頰
+    if (hands.length > 0) {
+      for (let hand of hands) {
+        if (hand.landmarks) {
+          const gesture = detectGesture(hand.landmarks);
+          if (gesture === "rock") {
+            circlePos = forehead;
+          } else if (gesture === "scissors") {
+            circlePos = leftCheek ? leftCheek : noseTip;
+          } else if (gesture === "paper") {
+            circlePos = rightCheek ? rightCheek : noseTip;
+          }
         }
       }
     }
@@ -77,26 +64,28 @@ function draw() {
     // 畫圓圈
     if (circlePos) {
       noFill();
-      stroke(255, 255, 0); // 黃色
+      stroke(255, 255, 0);
       ellipse(circlePos[0], circlePos[1], 50, 50);
     }
   }
 
-  // 手部偵測（標記食指指尖）
-  if (handPredictions.length > 0) {
-    for (let i = 0; i < handPredictions.length; i++) {
-      const landmarks = handPredictions[i].landmarks; // 取得手部關鍵點
-      const indexFingerTip = landmarks[8]; // 食指指尖座標（index 8）
-      fill(255); // 白色
-      noStroke();
-      ellipse(indexFingerTip[0], indexFingerTip[1], 10, 10); // 畫圓標記食指指尖
+  // 手部關鍵點標記
+  if (hands.length > 0) {
+    for (let hand of hands) {
+      if (hand.landmarks) {
+        for (let i = 0; i < hand.landmarks.length; i++) {
+          let keypoint = hand.landmarks[i];
+          fill(255, 255, 0);
+          noStroke();
+          circle(keypoint[0], keypoint[1], 10);
+        }
+      }
     }
   }
 }
 
-// 手勢辨識函式（簡易版，僅供剪刀石頭布）
+// 手勢辨識函式（剪刀石頭布）
 function detectGesture(landmarks) {
-  // 取得五指指尖座標
   const thumbTip = landmarks[4];
   const indexTip = landmarks[8];
   const middleTip = landmarks[12];
@@ -104,18 +93,15 @@ function detectGesture(landmarks) {
   const pinkyTip = landmarks[20];
   const wrist = landmarks[0];
 
-  // 計算每個指尖與手腕的距離
   function dist(a, b) {
     return Math.sqrt((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2);
   }
-  const thumbDist = dist(thumbTip, wrist);
   const indexDist = dist(indexTip, wrist);
   const middleDist = dist(middleTip, wrist);
   const ringDist = dist(ringTip, wrist);
   const pinkyDist = dist(pinkyTip, wrist);
 
-  // 判斷規則（可依實際需求調整閾值）
-  // 石頭：五指都彎曲（指尖靠近手腕）
+  // 石頭：五指都彎曲
   if (
     indexDist < 60 &&
     middleDist < 60 &&
