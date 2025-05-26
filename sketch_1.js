@@ -1,3 +1,33 @@
+let video;
+let predictions = [];
+let handPredictions = [];
+let facemesh;
+let handpose;
+
+function setup() {
+  createCanvas(640, 480);
+
+  // 啟用攝影機
+  video = createCapture(VIDEO);
+  video.size(width, height);
+  video.hide();
+
+  // 啟用 facemesh
+  facemesh = ml5.facemesh(video, () => {
+    console.log("Facemesh model loaded!");
+  });
+  facemesh.on("predict", results => {
+    predictions = results;
+  });
+
+  // 啟用 handpose
+  handpose = ml5.handpose(video, () => {
+    console.log("Handpose model loaded!");
+  });
+  handpose.on("predict", results => {
+    handPredictions = results;
+  });
+}
 // 主要繪圖函式
 function draw() {
   if (!video) return; // 如果攝影機尚未啟用則不執行
