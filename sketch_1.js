@@ -67,13 +67,9 @@ function draw() {
         if (gesture === "rock") {
           circlePos = forehead; // 石頭：額頭
         } else if (gesture === "scissors") {
-          circlePos = leftEye && rightEye
-            ? [(leftEye[0] + rightEye[0]) / 2, (leftEye[1] + rightEye[1]) / 2]
-            : noseTip; // 剪刀：兩眼中間
+          circlePos = leftCheek ? leftCheek : noseTip; // 剪刀：左側臉頰
         } else if (gesture === "paper") {
-          circlePos = leftCheek && rightCheek
-            ? [(leftCheek[0] + rightCheek[0]) / 2, (leftCheek[1] + rightCheek[1]) / 2]
-            : noseTip; // 布：兩臉頰中間
+          circlePos = rightCheek ? rightCheek : noseTip; // 布：右側臉頰
         }
       }
     }
